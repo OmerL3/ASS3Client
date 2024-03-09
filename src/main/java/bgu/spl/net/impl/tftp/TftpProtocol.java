@@ -22,6 +22,8 @@ public class TftpProtocol implements MessagingProtocol<byte[]> {
     private String fileNameForWRQ;
 
     private String forDIRQ = "";
+    private volatile boolean loggedIn = false;
+    private volatile boolean connected = true;
 
     private Queue<byte[]> dataToSendWRQ = new LinkedList<>();
 
@@ -34,22 +36,25 @@ public class TftpProtocol implements MessagingProtocol<byte[]> {
 
     //    process for the keyboardThread
     public String process(String msg) {
-        String command = msg.substring(0, msg.indexOf(' '));
+        String command = msg.substring(0, msg.indexOf(' ') > -1 ? msg.indexOf(' ') : msg.length());
         if (comapreCommand(command) != null) {
             opsToServer = new OpcodeOperations(command);
-            if (command.equals("RRQ")) {
+            if (opsToServer.opcode.equals(Opcode.DISC) && !loggedIn) {
+                System.out.println("not logged in and received DISC"); //TODO: REMOVE@@@@@@
+                connected = false;
+                return null;
+            }
+            if (opsToServer.opcode.equals(Opcode.RRQ)) {
                 fileNameForRRQ = msg.substring(4);
                 String currentDirectory = System.getProperty("user.dir");
                 File file = new File(currentDirectory, fileNameForRRQ);
-
                 try {
                     file.createNewFile();
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-
             }
-            if (command.equals("WRQ")) {
+            if (opsToServer.opcode.equals(Opcode.WRQ)) {
                 fileNameForWRQ = msg.substring(4);
             }
             return msg;
@@ -60,7 +65,7 @@ public class TftpProtocol implements MessagingProtocol<byte[]> {
     public byte[] processWRQ(int packetNumACK) {
         if (dataToSendWRQ.isEmpty()) {
             File file = new File(fileNameForWRQ);
-            byte[] data = null;
+            byte[] data;
             try {
                 FileInputStream fis = new FileInputStream(file);
                 data = new byte[(int) file.length()];
@@ -72,26 +77,27 @@ public class TftpProtocol implements MessagingProtocol<byte[]> {
             }
         }
         byte[] packet = dataToSendWRQ.peek();
-        if (packet != null && packetNumACK == (((packet[4] & 0xFF) << 8) | (packet[5] & 0xFF))) {
-            dataToSendWRQ.remove();
-            packet = dataToSendWRQ.peek();
+        if (packet != null) {
+            if (packetNumACK == 0 | packetNumACK == (((packet[4] & 0xFF) << 8) | (packet[5] & 0xFF))) {
+                dataToSendWRQ.remove();
+                packet = dataToSendWRQ.peek();
+            }
         }
         return packet;
 
     }
 
+
     private void createDataPackets(byte[] data) {
         int numberOfPackets;
-        numberOfPackets = data.length % 512;
-        if (data.length % 512 == 0) {
-            numberOfPackets++;
-        }
+        numberOfPackets = (data.length / 512) + 1;
+        dataToSendWRQ.add(generateDataPrefix(0, 0));
         for (int i = 1; i <= numberOfPackets; i++) {
             int sizeOfData = Math.min(512, data.length - ((i - 1) * 512));
             byte[] dataPacket = new byte[6 + sizeOfData];
             byte[] dataPrefix = generateDataPrefix(sizeOfData, i);
             System.arraycopy(dataPrefix, 0, dataPacket, 0, dataPrefix.length);
-            System.arraycopy(data, (i - 1) * 512, dataPacket, 6, dataPacket.length);
+            System.arraycopy(data, (i - 1) * 512, dataPacket, 6, sizeOfData);
             dataToSendWRQ.add(dataPacket);
         }
     }
@@ -116,13 +122,19 @@ public class TftpProtocol implements MessagingProtocol<byte[]> {
     //    process for the listenerThread
     public byte[] process(byte[] msg) {
         opsFromServer = new OpcodeOperations(msg[1]);
-        int blockNum = ((msg[2] & 0xFF) << 8) | (msg[3] & 0xFF);
+        int blockNum;
         switch (opsFromServer.opcode) {
             case ACK:
+                blockNum = ((msg[2] & 0xFF) << 8) | (msg[3] & 0xFF);
                 System.out.println("ACK " + blockNum);
+                if (blockNum == 0 && opsToServer.opcode.equals(Opcode.DISC)){
+                    loggedIn = false;
+                    connected = false;
+                }
+                if (blockNum == 0 && opsToServer.opcode.equals(Opcode.LOGRQ)) loggedIn = true;
                 return new byte[]{msg[2], msg[3]};
             case BCAST:
-                String fileName = new String(Arrays.copyOfRange(msg, 3, msg.length), StandardCharsets.UTF_8);
+                String fileName = new String(Arrays.copyOfRange(msg, 3, msg.length - 1), StandardCharsets.UTF_8);
                 if (msg[2] == 0) {
                     System.out.println("BCAST Deleted " + fileName);
                 } else {
@@ -130,7 +142,7 @@ public class TftpProtocol implements MessagingProtocol<byte[]> {
                 }
                 return null;
             case ERROR:
-                String errCode = new String(Arrays.copyOfRange(msg, 2, 4), StandardCharsets.UTF_8);
+                int errCode = ((msg[2] & 0xFF) << 8) | (msg[3] & 0xFF);
                 String errMsg = new String(Arrays.copyOfRange(msg, 4, msg.length), StandardCharsets.UTF_8);
                 System.out.println("ERROR " + errCode + " " + errMsg);
                 return null;
@@ -152,6 +164,7 @@ public class TftpProtocol implements MessagingProtocol<byte[]> {
                     return generateACK(blockNum);
 
                 } else if (opsToServer.opcode == Opcode.DIRQ) {
+                    System.out.println("DIRQ");
                     appendForDIRQ(msg);
                     if (packetSize < 512) {
                         String[] toPrint = forDIRQ.split("\u0000");
@@ -188,6 +201,6 @@ public class TftpProtocol implements MessagingProtocol<byte[]> {
 
     @Override
     public boolean shouldTerminate() {
-        return false;
+        return !(connected);
     }
 }

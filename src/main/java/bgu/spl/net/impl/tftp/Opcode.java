@@ -1,6 +1,7 @@
 package bgu.spl.net.impl.tftp;
 
 public enum Opcode {
+    UNDEFINED,
     RRQ,
     WRQ,
     DATA,
@@ -10,8 +11,7 @@ public enum Opcode {
     LOGRQ,
     DELRQ,
     BCAST,
-    DISC,
-    UNDEFINED;
+    DISC;
 
     public static Opcode getByOrdinal(byte value) {
         int index = Byte.toUnsignedInt(value);
@@ -24,7 +24,7 @@ public enum Opcode {
 
     public static Byte getByte(Opcode opcode){
         int num = opcode.ordinal();
-        return (byte) num;
+        return (byte) (num & 0xFF);
     }
 
 }
