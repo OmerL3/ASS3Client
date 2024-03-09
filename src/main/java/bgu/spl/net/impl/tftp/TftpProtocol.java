@@ -18,7 +18,7 @@ public class TftpProtocol implements MessagingProtocol<byte[]> {
     private OpcodeOperations opsToServer;
 
     private String fileNameForRRQ;
-    private byte[] toFile;
+    private byte[] toFile = new byte[]{};
     private String fileNameForWRQ;
 
     private String forDIRQ = "";
@@ -40,7 +40,6 @@ public class TftpProtocol implements MessagingProtocol<byte[]> {
         if (comapreCommand(command) != null) {
             opsToServer = new OpcodeOperations(command);
             if (opsToServer.opcode.equals(Opcode.DISC) && !loggedIn) {
-                System.out.println("not logged in and received DISC"); //TODO: REMOVE@@@@@@
                 connected = false;
                 return null;
             }
@@ -57,9 +56,8 @@ public class TftpProtocol implements MessagingProtocol<byte[]> {
             if (opsToServer.opcode.equals(Opcode.WRQ)) {
                 fileNameForWRQ = msg.substring(4);
             }
-            return msg;
         }
-        return null;
+        return msg;
     }
 
     public byte[] processWRQ(int packetNumACK) {
@@ -191,7 +189,7 @@ public class TftpProtocol implements MessagingProtocol<byte[]> {
     private void appendToFile(byte[] msg, int packetSize) {
         byte[] appended = new byte[toFile.length + packetSize];
         System.arraycopy(toFile, 0, appended, 0, toFile.length);
-        System.arraycopy(msg, 6, appended, toFile.length + 1, appended.length);
+        System.arraycopy(msg, 6, appended, toFile.length, appended.length);
         toFile = appended;
     }
 
