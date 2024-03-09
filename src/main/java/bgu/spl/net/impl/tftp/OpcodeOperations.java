@@ -8,7 +8,7 @@ public class OpcodeOperations {
     }
 
     public OpcodeOperations(String name) {
-        this.opcode = Opcode.valueOf(name);
+        this.opcode = Opcode.getByName(name);
     }
 
     public OpcodeOperations(Opcode code) {

@@ -27,4 +27,12 @@ public enum Opcode {
         return (byte) (num & 0xFF);
     }
 
+    public static Opcode getByName(String name) {
+        for (int i = 0; i < Opcode.values().length; i++) {
+            if (getByOrdinal((byte) i).name().equals(name)){
+                return getByOrdinal((byte) i);
+            }
+        }
+        return UNDEFINED;
+    }
 }
