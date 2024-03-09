@@ -18,8 +18,8 @@ public class TftpProtocol implements MessagingProtocol<byte[]> {
     private OpcodeOperations opsToServer;
 
     private String fileNameForRRQ;
-    private byte[] toFile = new byte[]{};
     private String fileNameForWRQ;
+    private byte[] toFile = new byte[]{};
 
     private String forDIRQ = "";
     private volatile boolean loggedIn = false;
@@ -143,6 +143,7 @@ public class TftpProtocol implements MessagingProtocol<byte[]> {
                 int errCode = ((msg[2] & 0xFF) << 8) | (msg[3] & 0xFF);
                 String errMsg = new String(Arrays.copyOfRange(msg, 4, msg.length), StandardCharsets.UTF_8);
                 System.out.println("ERROR " + errCode + " " + errMsg);
+                resetInputs();
                 return null;
             case DATA:
                 int packetSize = ((msg[2] & 0xFF) << 8) | (msg[3] & 0xFF);
@@ -175,6 +176,16 @@ public class TftpProtocol implements MessagingProtocol<byte[]> {
                 }
         }
         return null;
+    }
+
+    private void resetInputs() {
+        opsFromServer = new OpcodeOperations(Opcode.UNDEFINED);
+        opsToServer = new OpcodeOperations(Opcode.UNDEFINED);
+        fileNameForRRQ = "";
+        fileNameForWRQ = "";
+        toFile = new byte[]{};
+        forDIRQ = "";
+        dataToSendWRQ = new LinkedList<>();
     }
 
     private byte[] generateACK(int blockNum) {
