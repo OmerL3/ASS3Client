@@ -49,11 +49,10 @@ public class TftpClient {
                     if (keyboardReader.ready()) {
                         if ((userInput = keyboardReader.readLine()) != null) {
                             userOp = userInput.substring(0, userInput.indexOf(' ') > -1 ? userInput.indexOf(' ') : userInput.length());
-                            if (!(userOp.equals("DIRQ") | userOp.equals("DISC")) && userInput.length() > 0)
+                            if (!(userOp.equals("DIRQ") | userOp.equals("DISC")) && (userOp=protocol.comapreCommand(userOp)) != null)
                                 name = userInput.substring(userOp.length() + 1);
                             if ((protocol.process(userInput)) != null) {
                                 send(encdec.encode(userOp, name));
-                                userOp = protocol.comapreCommand(userOp);
                                 if (userOp.equals("WRQ")) {
                                     WRQdone = false;
                                 }
