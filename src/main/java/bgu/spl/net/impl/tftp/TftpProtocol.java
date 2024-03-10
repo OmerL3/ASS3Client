@@ -19,7 +19,7 @@ public class TftpProtocol implements MessagingProtocol<byte[]> {
 
     private String fileNameForRRQ;
     private String fileNameForWRQ;
-    private byte[] toFile = new byte[]{};
+    private byte[] toFile;
 
     private String forDIRQ = "";
     private volatile boolean loggedIn = false;
@@ -35,7 +35,7 @@ public class TftpProtocol implements MessagingProtocol<byte[]> {
     }
 
     //    process for the keyboardThread
-    public String process(String msg) {
+    public synchronized String process(String msg) {
         String command = msg.substring(0, msg.indexOf(' ') > -1 ? msg.indexOf(' ') : msg.length());
         if (comapreCommand(command) != null) {
             opsToServer = new OpcodeOperations(command);
@@ -44,6 +44,7 @@ public class TftpProtocol implements MessagingProtocol<byte[]> {
                 return null;
             }
             if (opsToServer.opcode.equals(Opcode.RRQ)) {
+                toFile  = new byte[]{};
                 fileNameForRRQ = msg.substring(4);
                 String currentDirectory = System.getProperty("user.dir");
                 File file = new File(currentDirectory, fileNameForRRQ);
@@ -118,7 +119,7 @@ public class TftpProtocol implements MessagingProtocol<byte[]> {
     }
 
     //    process for the listenerThread
-    public byte[] process(byte[] msg) {
+    public synchronized byte[] process(byte[] msg) {
         opsFromServer = new OpcodeOperations(msg[1]);
         int blockNum;
         switch (opsFromServer.opcode) {
@@ -132,7 +133,7 @@ public class TftpProtocol implements MessagingProtocol<byte[]> {
                 if (blockNum == 0 && opsToServer.opcode.equals(Opcode.LOGRQ)) loggedIn = true;
                 return new byte[]{msg[2], msg[3]};
             case BCAST:
-                String fileName = new String(Arrays.copyOfRange(msg, 3, msg.length - 1), StandardCharsets.UTF_8);
+                String fileName = new String(Arrays.copyOfRange(msg, 3, msg.length), StandardCharsets.UTF_8);
                 if (msg[2] == 0) {
                     System.out.println("BCAST Deleted " + fileName);
                 } else {

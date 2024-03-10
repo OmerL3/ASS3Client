@@ -17,9 +17,6 @@ public class TftpClient {
     private final TftpProtocol protocol = new TftpProtocol();
     private final TftpEncoderDecoder encdec = new TftpEncoderDecoder();
 
-//    TODO: LOCKS::
-//    "send()" should be synchronized/locked when the listeningthread sending data/acks
-//    in protocol - should the process methods be synchronized(this)? as the client can give inputs while processing data from server
 
 
     public TftpClient(String serverAddress, int port) {
@@ -57,7 +54,7 @@ public class TftpClient {
                                 name = userInput.substring(userOp.length() + 1);
                             if ((protocol.process(userInput)) != null) {
                                 send(encdec.encode(userOp, name));
-                                if (userOp.equals("WRQ")) {
+                                if (userOp!= null && userOp.equals("WRQ")) {
                                     WRQdone = false;
                                 }
                             }
@@ -135,7 +132,7 @@ public class TftpClient {
         }
     }
 
-    private void send(byte[] msg) {
+    private synchronized void send(byte[] msg) {
         try {
             System.out.println("#opcode is " + Opcode.getByOrdinal(msg[1]).name());
 
@@ -157,13 +154,12 @@ public class TftpClient {
 
     //TODO: implement the main logic of the client, when using a thread per client the main logic goes here
     public static void main(String[] args) {
-        String serverAddress = "192.168.0.178"; // TODO: make sure the server adress+port is correct
+        String serverAddress = "10.100.102.17"; // TODO: make sure the server adress+port is correct
         int port = 7777;
         TftpClient client = new TftpClient(serverAddress, port);
         client.start();
 
         client.waitForThreads();
-        System.out.println("close");
         client.close();
 
     }
