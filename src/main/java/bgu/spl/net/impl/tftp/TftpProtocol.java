@@ -200,7 +200,7 @@ public class TftpProtocol implements MessagingProtocol<byte[]> {
     private void appendToFile(byte[] msg, int packetSize) {
         byte[] appended = new byte[toFile.length + packetSize];
         System.arraycopy(toFile, 0, appended, 0, toFile.length);
-        System.arraycopy(msg, 6, appended, toFile.length, appended.length);
+        System.arraycopy(msg, 6, appended, toFile.length, packetSize);
         toFile = appended;
     }
 
