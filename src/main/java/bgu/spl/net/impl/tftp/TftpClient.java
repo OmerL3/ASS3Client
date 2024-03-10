@@ -60,13 +60,6 @@ public class TftpClient {
                             }
                         }
                     }
-//                    else{
-//                        try {
-//                            Thread.sleep(10);
-//                        } catch (InterruptedException e) {
-//                            throw new RuntimeException(e);
-//                        }
-//                    }
                 }
             } catch (IOException e) {
                 e.printStackTrace();
@@ -98,13 +91,6 @@ public class TftpClient {
                             }
                         }
                     }
-//                    else {
-//                        try {
-//                            Thread.sleep(10);
-//                        } catch (InterruptedException e) {
-//                            throw new RuntimeException(e);
-//                        }
-//                    }
 
                 }
             } catch (IOException e) {
@@ -134,16 +120,7 @@ public class TftpClient {
 
     private synchronized void send(byte[] msg) {
         try {
-            System.out.println("#opcode is " + Opcode.getByOrdinal(msg[1]).name());
-
-//            for(int i = 0 ; i<msg.length; i++){
-//                System.out.print((msg[i] & 0xFF) + ",");
-//            }
-//            System.out.println();
-//            System.out.println(new String(msg, StandardCharsets.UTF_8));  //IF U WANT TO SEE THE DATA U SEND RAW
-//            System.out.println("#sending msg with length= " + msg.length);
-
-
+//            System.out.println("#sending opcode " + Opcode.getByOrdinal(msg[1]).name());
             out.write(msg);
             out.flush();
         } catch (IOException e) {

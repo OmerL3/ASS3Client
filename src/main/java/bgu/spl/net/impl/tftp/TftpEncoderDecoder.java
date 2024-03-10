@@ -17,6 +17,7 @@ public class TftpEncoderDecoder implements MessageEncoderDecoder<byte[]> {
         if (len <= 4) {
             if (len == 1) {
                 opcodeOp = new OpcodeOperations(nextByte);
+//                System.out.println("#opcode received:" + opcodeOp.opcode.name());
             } else {
                 if (len == 4 && opcodeOp.opcode == Opcode.DATA){
                     packetSize = ((bytes[2] & 0xFF) << 8) | (bytes[3] & 0xFF);

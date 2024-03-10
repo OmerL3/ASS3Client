@@ -9,8 +9,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.LinkedList;
 import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class TftpProtocol implements MessagingProtocol<byte[]> {
 
@@ -25,7 +25,7 @@ public class TftpProtocol implements MessagingProtocol<byte[]> {
     private volatile boolean loggedIn = false;
     private volatile boolean connected = true;
 
-    private Queue<byte[]> dataToSendWRQ = new LinkedList<>();
+    private Queue<byte[]> dataToSendWRQ = new ConcurrentLinkedQueue<>();
 
 
     public String comapreCommand(String command) {
@@ -62,7 +62,7 @@ public class TftpProtocol implements MessagingProtocol<byte[]> {
     }
 
     public byte[] processWRQ(int packetNumACK) {
-        if (dataToSendWRQ.isEmpty()) {
+        if (dataToSendWRQ.isEmpty() && opsFromServer.opcode.equals(Opcode.ACK) && opsToServer.opcode.equals(Opcode.WRQ)) {
             File file = new File(fileNameForWRQ);
             byte[] data;
             try {
@@ -80,6 +80,11 @@ public class TftpProtocol implements MessagingProtocol<byte[]> {
             if (packetNumACK == 0 | packetNumACK == (((packet[4] & 0xFF) << 8) | (packet[5] & 0xFF))) {
                 dataToSendWRQ.remove();
                 packet = dataToSendWRQ.peek();
+                if (packet == null) System.out.println("WRQ " + fileNameForWRQ + " complete");
+            }
+            else{
+                System.out.println("ACK = " + packetNumACK +", packet = " + (((packet[4] & 0xFF) << 8) | (packet[5] & 0xFF)));
+                throw new RuntimeException("ACK received doesn't match packet sent");
             }
         }
         return packet;
@@ -164,7 +169,6 @@ public class TftpProtocol implements MessagingProtocol<byte[]> {
                     return generateACK(blockNum);
 
                 } else if (opsToServer.opcode == Opcode.DIRQ) {
-                    System.out.println("DIRQ");
                     appendForDIRQ(msg);
                     if (packetSize < 512) {
                         String[] toPrint = forDIRQ.split("\u0000");
@@ -186,7 +190,7 @@ public class TftpProtocol implements MessagingProtocol<byte[]> {
         fileNameForWRQ = "";
         toFile = new byte[]{};
         forDIRQ = "";
-        dataToSendWRQ = new LinkedList<>();
+        dataToSendWRQ = new ConcurrentLinkedQueue<>();
     }
 
     private byte[] generateACK(int blockNum) {
