@@ -74,7 +74,7 @@ public class TftpEncoderDecoder implements MessageEncoderDecoder<byte[]> {
 
     @Override
     public byte[] encode(byte[] msg) {
-        if (Byte.toUnsignedInt(msg[1]) == 6 || Byte.toUnsignedInt(msg[1]) == 10 || Byte.toUnsignedInt(msg[1]) == 0 ) return msg;
+         if (Byte.toUnsignedInt(msg[1]) == 6 || Byte.toUnsignedInt(msg[1]) == 10 || Byte.toUnsignedInt(msg[1]) == 0 ) return msg; // if it's ACK or DIRQ or UNDEFINED just send as is
         byte[] encodedMessage = new byte[msg.length + 1];
         System.arraycopy(msg, 0, encodedMessage, 0, msg.length);
         encodedMessage[msg.length] = 0;

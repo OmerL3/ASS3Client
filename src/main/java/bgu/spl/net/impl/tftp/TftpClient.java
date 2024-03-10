@@ -17,6 +17,10 @@ public class TftpClient {
     private final TftpProtocol protocol = new TftpProtocol();
     private final TftpEncoderDecoder encdec = new TftpEncoderDecoder();
 
+//    TODO: LOCKS::
+//    "send()" should be synchronized/locked when the listeningthread sending data/acks
+//    in protocol - should the process methods be synchronized(this)? as the client can give inputs while processing data from server
+
 
     public TftpClient(String serverAddress, int port) {
         try {
@@ -106,7 +110,6 @@ public class TftpClient {
 //                    }
 
                 }
-                System.out.println("listener thread while end");
             } catch (IOException e) {
                 e.printStackTrace();
             }
